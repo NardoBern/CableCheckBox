@@ -3,25 +3,39 @@ boolean toggle0 = 0;
 boolean toggle1 = 0;
 boolean oldToggle1;
 boolean toggle2 = 0;
-int Val;
-int oldInVal;
+int Val1;
+int oldInVal1;
+int Val2;
+int oldInVal2;
+int Val3;
+int oldInVal3;
+int Val4;
+int oldInVal4;
 int Start = 1;
 int oldStart = 1;
 bool xFailed = false;
 bool xStartTest = false;
 bool xWait3pulse = false;
 int countWaitPulse = 0;
-int counter;
+int counter1;
+int counter2;
+int counter3;
+int counter4;
 int correctPulse = 511; //511 con 8 kHz di timer2 e 10hz di timer1
+int errorCounter = 0;
 
 void setup(){
   Serial.begin(2000000);
   //set pins as outputs
-  pinMode(8, OUTPUT);
-  pinMode(9, OUTPUT);
+  pinMode(8, OUTPUT);  // 1kHz pulse output
+  pinMode(9, OUTPUT); // 4kHz pulse output
   pinMode(13, OUTPUT);
   pinMode(0, INPUT);
   pinMode(1, INPUT_PULLUP);
+  pinMode(7, INPUT); // Sercos wire couple #1
+  pinMode(6, INPUT); // Sercos wire couple #2
+  pinMode(5, INPUT); // Sercos wire couple #3
+  pinMode(4, INPUT); // Sercos wire couple #4
 
 cli();//stop interrupts
 
@@ -106,37 +120,96 @@ ISR(TIMER2_COMPA_vect){//timer1 interrupt 8kHz toggles pin 9
 }
 
 void pulseTest(){
-Val = digitalRead(0);
-  if ((Val) && !(oldInVal)){
-    counter++;
+  // Sercos Couple #1 check
+  Val1 = digitalRead(7);
+  if ((Val1) && !(oldInVal1)){
+    counter1++;
+    //Serial.print("Counter1:");
+    //Serial.println(counter1);
   }
-  oldInVal = Val;
+  oldInVal1 = Val1;
+  // Sercos Couple #2 check
+  Val2 = digitalRead(6);
+  if ((Val2) && !(oldInVal2)){
+    counter2++;
+    //Serial.print("Counter2:");
+    //Serial.println(counter2);
+  }
+  oldInVal2 = Val2;
+  // Sercos Couple #3 check
+  Val3 = digitalRead(5);
+  if ((Val3) && !(oldInVal3)){
+    counter3++;
+    //Serial.print("Counter3:");
+    //Serial.println(counter3);
+  }
+  oldInVal3 = Val3;
+  // Sercos Couple #4 check
+  Val4 = digitalRead(4);
+  if ((Val4) && !(oldInVal4)){
+    counter4++;
+    //Serial.print("Counter4:");
+    //Serial.println(counter4);
+  }
+  oldInVal4 = Val4;
 
   if (!(toggle1) && (oldToggle1)){
-    
-    Serial.println(counter);
-    if (counter != correctPulse){//digitalWrite(13, HIGH);
+    Serial.print("Counter1: ");
+    Serial.println(counter1);
+    Serial.print("Counter2: ");
+    Serial.println(counter2);
+    Serial.print("Counter3: ");
+    Serial.println(counter3);
+    Serial.print("Counter4: ");
+    Serial.println(counter4);
+    if ((counter1 != correctPulse) || (counter2 != correctPulse) || (counter3 != correctPulse) || (counter4 != correctPulse)) {//digitalWrite(13, HIGH);
       //cli();
-      xFailed = true;
-      xStartTest = false;}
+      errorCounter++;
+      if (errorCounter > 3){
+        xFailed = true;
+        Serial.print("Error counter: ");
+        Serial.println(errorCounter);
+        Serial.println("failed");
+        xStartTest = false;}}
     //else{//digitalWrite(13,LOW);}    
-    counter = 0;
+    counter1 = 0;
+    counter2 = 0;
+    counter3 = 0;
+    counter4 = 0;
   }
 
   if ((toggle1) && !(oldToggle1)){
-    Serial.println(counter);
-    if (counter != correctPulse){//digitalWrite(13, HIGH);
+    
+    if ((counter1 != correctPulse) || (counter2 != correctPulse) || (counter3 != correctPulse) || (counter4 != correctPulse)){//digitalWrite(13, HIGH);
       //cli();
-      xFailed = true;
-        xStartTest = false;}
+      errorCounter++;
+      if (errorCounter > 3){
+        xFailed = true;
+        Serial.print("Error counter: ");
+        Serial.println(errorCounter);
+        Serial.println("failed");
+        xStartTest = false;}}
      //else{//digitalWrite(13,LOW);}
-    counter = 0;
+    counter1 = 0;
+    counter2 = 0;
+    counter3 = 0;
+    counter4 = 0;
   }
   oldToggle1 = toggle1;
   
 }
 
 void writeOutput(){
+  if ((xFailed) && (xStartTest)){
+    Serial.print("Counter1: ");
+    Serial.println(counter1);
+    Serial.print("Counter2: ");
+    Serial.println(counter2);
+    Serial.print("Counter3: ");
+    Serial.println(counter3);
+    Serial.print("Counter4: ");
+    Serial.println(counter4);
+  }
   digitalWrite(13, xFailed);
 }
 
@@ -145,7 +218,8 @@ void loop(){
   Start = digitalRead(1);
   if ((Start) && !(oldStart)){
     xStartTest = true;
-    xFailed = false;}
+    xFailed = false;
+    errorCounter = 0;}
   oldStart = Start;
   pulseTest();
   
